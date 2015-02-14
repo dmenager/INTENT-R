@@ -52,7 +52,28 @@
 (defvar *thread-variables* '())
 
 (defvar *atomic-actions* '())
-
+(defvar *key* (make-hash-table))
+(setf (gethash 1 *key*)'attack)
+(setf (gethash 2 *key*) 'barter)
+(setf (gethash 3 *key*)'create)
+(setf (gethash 4 *key*)'escort)
+(setf (gethash 5 *key*)'gather)
+(setf (gethash 6 *key*)'graze)
+(setf (gethash 7 *key*)'heal)
+(setf (gethash 8 *key*)'lock)
+(setf (gethash 9 *key*)'loot)
+(setf (gethash 10 *key*)'move)
+(setf (gethash 11 *key*)'patrol)
+(setf (gethash 12 *key*)'repair)
+(setf (gethash 13 *key*)'scout)
+(setf (gethash 14 *key*)'trade)
+(setf (gethash 15 *key*)'infantry-units) 
+(setf (gethash 16 *key*)'cavalry-units) 
+(setf (gethash 17 *key*)'support-units) 
+(setf (gethash 18 *key*)'siege-units) 
+(setf (gethash 19 *key*)'naval-units) 
+(setf (gethash 20 *key*) 'structures)
+(setf (gethash 21 *key*) 'resources)
 (push (make-atomic-action :action 'attack :with '() :who '())
       *atomic-actions*)
 (push (make-atomic-action :action 'barter :who '()) 
@@ -149,15 +170,9 @@
   (let ((socket (usocket:socket-listen usocket:*wildcard-host*
 				       port
 				       :reuse-address t))
-	(count 9))
+	(count 0))
     (unwind-protect 
 	 (progn
-	   (with-open-file (count-file "lastCount.txt"
-				       :direction :input
-				       :if-does-not-exist :error)
-	     (setq count (read count-file nil))
-	     (format *standard-output* "read ~d from counter!~%" count)
-	     (clear-input count-file))
 	   (loop 
 	      (format *standard-output* "Waiting for input on ~A~%" socket)
 	      (usocket:wait-for-input socket)
@@ -168,7 +183,8 @@
 		(format *standard-output* "Connection made to client ~%")
 		(setq *thread-variables* 
 		      (append *thread-variables* (list (list '() t))))
-		  ; handle the request on thread and let main accept new clients
+		  
+                  ; handle the request on thread and let main accept new clients
 		  (sb-thread:make-thread 
 		   (lambda(std-out cnt)
 		     (let* ((*standard-output* std-out)
@@ -182,20 +198,13 @@
 					(setf (first (nth cnt *thread-variables*)) '())))))
 		       
 		       ; 5 minute timeout
-		       (trivial-timers:schedule-timer timer (* 5 60))
+		       (trivial-timers:schedule-timer timer (* 5 1))
 		     
 		       (loop while (not (null (second (nth cnt *thread-variables*)))) do
 			    (handle-request stream cnt std-out timer)
 			    (clear-input stream)))) 
 		   :arguments (list *standard-output* thread-index))
-		  (incf count)
-		  (with-open-file (write-count "lastCount.txt"
-					       :direction :output
-					       :if-exists :supersede
-					       :if-does-not-exist :create)
-		    (format write-count "~d~%" count)
-		    (format *standard-output* "Wrote ~d to file~%" count)
-		    (force-output write-count)))))
+		  (incf count))))
       (progn
 	; wait for data to implement message handlers before the next 2 lines
 	;(format stream "Connection closed due to inactivity.~%")
@@ -208,7 +217,7 @@
 ; ostream = reference to standard out
 ; timer = timeout timer 
 (defun handle-request (stream t-idx ostream timer)
-  (trivial-timers:schedule-timer timer (* 5 60))
+  (trivial-timers:schedule-timer timer (* 5 1))
   (with-open-file (clientData (concatenate 'string 
 					   "clientData/clientData"
 					   (write-to-string t-idx) ".txt")
@@ -289,6 +298,9 @@
          (binary-list (ash n -1) (cons (logand 1 n) acc)))
         (t (error "~S: non-negative argument required, got ~s" 'binary-list n))))
 
+
+
+;Generate all positble lists (5 3 52 ..) Then filter out invalid ones
 #| Define action space for MDP |#
 
 ; list = list of atomic actions
@@ -361,10 +373,141 @@
 	     set)
     (make-action-space *atomic-actions* (rest atts)))))
 
+#|Determine action spaceint terms of codes|#
+
+; (action with what who)
+(defun enumerate-action-space ()
+  (let ((acc '()))
+    (do ((i 1 (incf i)))
+	((= i 22))
+      (do ((j 0 (incf j)))
+	  ((= j 22))
+	(do ((k 0 (incf k)))
+	  ((= k 22))
+	  (do ((l 0 (incf l)))
+	      ((= l 22))
+	    (let ((unfiltered (copy-list '(0 0 0 0))))
+	      (setf (nth 0 unfiltered) i)
+	      (setf (nth 1 unfiltered) j)
+	      (setf (nth 2 unfiltered) k)
+	      (setf (nth 3 unfiltered) l)
+	      (push unfiltered acc))))))
+    (combinations 2 (remove-if #'(lambda (list)
+				   (if (or (eq 1 (nth 1 list))
+					   (eq 2 (nth 1 list))
+					   (eq 3 (nth 1 list))
+					   (eq 4 (nth 1 list))
+					   (eq 5 (nth 1 list))
+					   (eq 6 (nth 1 list))
+					   (eq 7 (nth 1 list))
+					   (eq 8 (nth 1 list))
+					   (eq 9 (nth 1 list))
+					   (eq 10 (nth 1 list))
+					   (eq 11 (nth 1 list))
+					   (eq 12 (nth 1 list))
+					   (eq 13 (nth 1 list))
+					   (eq 14 (nth 1 list))
+					   (eq 1 (nth 2 list))
+					   (eq 2 (nth 2 list))
+					   (eq 3 (nth 2 list))
+					   (eq 4 (nth 2 list))
+					   (eq 5 (nth 2 list))
+					   (eq 6 (nth 2 list))
+					   (eq 7 (nth 2 list))
+					   (eq 8 (nth 2 list))
+					   (eq 9 (nth 2 list))
+					   (eq 10 (nth 2 list))
+					   (eq 11 (nth 2 list))
+					   (eq 12 (nth 2 list))
+					   (eq 13 (nth 2 list))
+					   (eq 14 (nth 2 list))
+					   (eq 1 (nth 3 list))
+					   (eq 2 (nth 3 list))
+					   (eq 3 (nth 3 list))
+					   (eq 4 (nth 3 list))
+					   (eq 5 (nth 3 list))
+					   (eq 6 (nth 3 list))
+					   (eq 7 (nth 3 list))
+					   (eq 8 (nth 3 list))
+					   (eq 9 (nth 3 list))
+					   (eq 10 (nth 3 list))
+					   (eq 11 (nth 3 list))
+					   (eq 12 (nth 3 list))
+					   (eq 13 (nth 3 list))
+					   (eq 14 (nth 3 list))
+					   (>  (nth 0 list) 14)
+					   (and (or (eq 1 (nth 0 list))
+						    (eq 2 (nth 0 list))
+						    (eq 4 (nth 0 list))
+						    (eq 5 (nth 0 list))
+						    (eq 6 (nth 0 list))
+						    (eq 7 (nth 0 list))
+						    (eq 8 (nth 0 list))
+						    (eq 9 (nth 0 list))
+						    (eq 10 (nth 0 list))
+						    (eq 11 (nth 0 list))
+						    (eq 13 (nth 0 list))
+						    (eq 14 (nth 0 list)))
+						(> (nth 1 list) 19))
+					   (and (eq 1 (nth 0 list))
+						(or (eq 0 (nth 1 list))
+						    (eq 0 (nth 2 list))
+						    (eq 21 (nth 2 list))))
+					   (and (eq 1 (nth 0 list))
+						(> (nth 3 list) 0))
+					   (and (eq 2 (nth 0 list))
+						(or (eq 0 (nth 3 list))
+						    (> (nth 1 list) 0)
+						    (> (nth 2 list) 0)
+						    (> (nth 3 list) 15)))
+					   (and (eq 3 (nth 0 list))
+						(or (eq 0 (nth 2 list))
+						    (> (nth 1 list) 0)
+						    (> (nth 3 list) 0)
+						    (eq 21 (nth 2 list))))
+					   (and (eq 5 (nth 0 list))
+						(or (> (nth 1 list) 0)
+						    (> (nth 3 list) 0)
+						    (not (= 21 (nth 2 list)))))
+					   (eq 4 (nth 0 list))
+					   (eq 6 (nth 0 list))
+					   (and (eq 7 (nth 0 list))
+						(or (not (= 17 (nth 1 list)))
+						    (> (nth 2 list) 0)
+						    (> (nth 3 list) 19)
+						    (= 0 (nth 3 list))))
+					   (eq 8 (nth 0 list))
+					   (eq 9 (nth 0 list))
+					   (and (eq 10 (nth 0 list))
+						(or (> (nth 1 list) 0)
+						    (> (nth 2 list) 0)
+						    (> (nth 3 list) 19)
+						    (= 0 (nth 3 list))))
+					   (eq 11 (nth 0 list))
+					   (and (eq 12 (nth 0 list))
+						(or (> (nth 1 list) 0)
+						    (> (nth 3 list) 0)
+						    (not (= 20 (nth 2 list)))
+						    (= 0 (nth 2 list))))
+					   (eq 13 (nth 0 list))
+					   (and (eq 14 (nth 0 list))
+						(or (> (nth 1 list) 0)
+						    (> (nth 3 list) 0)
+						    (= (nth 2 list) 0)
+						    (= (nth 2 list) 20))))
+				       t
+				       '()))
+			       acc))))
+  
 ; action space with 4 actions per move: 11,725,156 actions. This assumes action space of 130: intractable
 ; action space with 3 actions per move: 36,6276 actions. This assumes action space of 130: intractable
 ; action space with 2 actions per move: 8,516 actions. This assumes action space of 130
 ; action space with no generalizations: intractable.
+
+#|Perform n chose count combination |#
+
+; list = list to perform combinations on
+; count = choose
 (defun combinations (count list)
   (cond
     ((zerop count) '(())) ; one combination of zero element.
