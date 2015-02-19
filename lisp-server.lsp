@@ -1,17 +1,6 @@
 (ql:quickload :usocket)
 (ql:quickload :trivial-timers)
 
-(defstruct atomic-action 
-  (action 'nil :type symbol) 
-  (with 'inv) 
-  (who 'inv)  
-  (what 'inv))
-
-(defstruct entity
-  (name 'nil :type symbol)
-  (type 'nil :type symbol)
-  (owner 'nil :type symbol))
-
 (defstruct node 
   (state-name 0 :type integer)
   (state '() :type list)
