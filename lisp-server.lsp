@@ -342,26 +342,23 @@
 #| build transition graph |#
 
 ; mdpr = mdpr simulation
-(defun make-graph (mdpr)
-
-  (do ((state1 0 (incf state1)))
-      ((= (length (mdpr-states mdpr)) state1))
-    (do ((states2 0 (incf state2)))
-	((= (length (mdpr-states mdpr)) state2))
-      (let ((state-actions-row '()))
-	(do ((a 0 (incf a)))
-	    (( = (lenght (mdpr-actions mdpr)) a))))))
-	
+(defun make-graph (mdpr)  
   (map 'list
        #'(lambda (state)
 	   (let ((state-row '()))
 	     (do ((state-idx 0 (incf state-idx)))
 		 ((= (length (mdpr-states mdpr)) state-idx))
-	       (setq state-row (cons (random-percent) action-row)))
+	       (setq state-row (cons (make-action-list (mdpr-actions mdpr)) state-row)))
 	     (setf (mdpr-graph mdpr) 
-		   (cons (setq action-row (cons action action-row))
+		   (cons (setq state-row (cons state state-row))
 			 (mdpr-graph mdpr)))))
        (mdpr-states mdpr)))
+
+(defun make-action-list (mdpr-actions)
+  (map 'list
+       #'(lambda (action)
+	   (list action 0))
+       mdpr-actions))
 
 #| Assign the transition probabilities for each node |#
 
