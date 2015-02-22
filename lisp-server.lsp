@@ -127,8 +127,8 @@
 (defun handle-request (stream t-idx ostream timer)
   (trivial-timers:schedule-timer timer (* 5 60))
   (with-open-file (clientData (concatenate 'string 
-					   "clientData/clientData"
-					   (write-to-string t-idx) ".txt")
+					   "clientData/"
+					   (write-to-string (read stream)) ".txt")
 			      :direction :output
 			      :if-exists :append
 			      :if-does-not-exist :create)
@@ -136,8 +136,8 @@
 	  (*standard-output* ostream))
       (setf (first (nth t-idx *thread-variables*)) t)
       (format *standard-output* "Handling request ~%")
-      (format *standard-output* "You said: ~S~%" line)
-      (format clientData "You said: ~S~%" line))
+      (format *standard-output* "Received: ~S~%" line)
+      (format clientData "~S~%" line))
     (force-output stream)
     (force-output clientData)))
 
@@ -198,17 +198,7 @@
 	(incf count)))
     states))
 
-#| Convert decimal to binary list|#
-
-; n = number to convert to binary
-(defun binary-list (n &optional acc)
-  (cond ((zerop n) (or acc (list 0)))
-        ((plusp n)
-         (binary-list (ash n -1) (cons (logand 1 n) acc)))
-        (t (error "~S: non-negative argument required, got ~s" 'binary-list n))))
-
-
-#|Determine action spaceint terms of codes|#
+#|Determine action space in terms of codes|#
 
 ; (action with what who)
 (defun enumerate-action-space ()
@@ -353,16 +343,25 @@
 
 ; mdpr = mdpr simulation
 (defun make-graph (mdpr)
+
+  (do ((state1 0 (incf state1)))
+      ((= (length (mdpr-states mdpr)) state1))
+    (do ((states2 0 (incf state2)))
+	((= (length (mdpr-states mdpr)) state2))
+      (let ((state-actions-row '()))
+	(do ((a 0 (incf a)))
+	    (( = (lenght (mdpr-actions mdpr)) a))))))
+	
   (map 'list
-       #'(lambda (action)
-	   (let ((action-row '()))
+       #'(lambda (state)
+	   (let ((state-row '()))
 	     (do ((state-idx 0 (incf state-idx)))
 		 ((= (length (mdpr-states mdpr)) state-idx))
-	       (setq action-row (cons (random-percent) action-row)))
+	       (setq state-row (cons (random-percent) action-row)))
 	     (setf (mdpr-graph mdpr) 
 		   (cons (setq action-row (cons action action-row))
 			 (mdpr-graph mdpr)))))
-       (mdpr-actions mdpr)))
+       (mdpr-states mdpr)))
 
 #| Assign the transition probabilities for each node |#
 
@@ -398,7 +397,7 @@
   ;expected value of the sum of the discount * phi
   (let* ((err .01)
 	 (gamma .5)
-	 ;e-horizon time
+	 ;epsilon-horizon time
 	 (He (log (* err (- 1 gamma)) gamma)))
     
     (mapcar #'(lambda (&rest x) (reduce #'+ x))  
@@ -419,10 +418,9 @@
 
 #| Simulate an action in the MDP-R|#
 
-; p = policy
-; mdpr = mdpr
+; graph = transition graph
 ; returns state
-(defun act (p mdpr) 
+(defun act (graph) 
   )
 
 
