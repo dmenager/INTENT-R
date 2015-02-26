@@ -68,8 +68,10 @@
   (setq conn (usocket:socket-connect usocket:*wildcard-host* port)))
 
 (defun tcp-test-send ()
-  (format (usocket:socket-stream conn) "Hello World!~%")
-  (force-output (usocket:socket-stream conn)))
+  (let ((stream (usocket:socket-stream conn)))
+  (format stream "ABCD Hello World!~%")
+  (force-output stream)
+  (read-line stream nil)))
 
 (defun tcp-server (port) 
   ; clear residual thread variables
@@ -114,8 +116,6 @@
 		   :arguments (list *standard-output* thread-index))
 		  (incf count))))
       (progn
-	; wait for data to implement message handlers before the next 2 lines
-	;(format stream "Connection closed due to inactivity.~%")
 	(usocket:socket-close socket)))))
 
 #| Service a request from a client |#
@@ -137,6 +137,8 @@
       (setf (first (nth t-idx *thread-variables*)) t)
       (format *standard-output* "Handling request ~%")
       (format *standard-output* "Received: ~S~%" line)
+      (sleep 3)
+      (format stream "got somethin yo!~%")
       (format clientData "~S~%" line))
     (force-output stream)
     (force-output clientData)))
@@ -155,7 +157,6 @@
 ; init-file = states, transition probabilities, m trajectories
 ; return reward function   
 (defun init-apprentice (init-file)
-  
   ; create MDP/R
   (let ((mdp-r (make-mdpr :states '()
 			  :actions '()
@@ -163,7 +164,6 @@
 			  :cur-state 0
 			  :start-state 0)))
     
-  
     ; update :owner for each player in game
     ; fill state/action space
     (setf (mdpr-states mdp-r) (make-state-space '()))
