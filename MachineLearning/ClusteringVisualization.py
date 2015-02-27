@@ -1,65 +1,79 @@
 import numpy as np
-from sklearn.cluster import KMeans
+import pandas as ps
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 
-# X - data set being clustered
+# Generates histograms for given features
+#
+# X - Pandas data set
 # Y - labels from clustering
-# k - number of clusters
-def visualize(X,  Y,  k):
+# F - the features to generated histograms for (an array of strings)
+def hist(X,  Y,  F):
+    i_figure = 1
+    
     # Generate a histogram for the given feature
-    def hist_feature(i_feature):
+    for f in F:
         # list of k empty lists
         sets = np.ndarray(shape  = (k,  0)).tolist()
         
         # Array containing just that feature
-        feat_array = X[:, i_feature]
+        feat_array = X[f]
         
         # Divide up (based on clustering label) into subsets 
         for i in range(0,  Y.size):
             sets[Y[i]].append(feat_array[i])        
-            
+        
+        plt.figure(i_figure)
+        i_figure += 1
+    
         # Automatically sets up histogram with bar-stacking style
         plt.hist(sets,  histtype = 'barstacked')
 
-        plt.xlabel('Value')
-        plt.ylabel('Occurences')
-        plt.title('Histogram of Feature %d' % i_feature)
-        plt.show()
+        plt.xlabel(f)
+        plt.ylabel('Occurences of ranges')
+        plt.title('Histogram of %s (blue = 0, red = 1, green = 2, cyan = 3)' % f)
     
-    # Generate a histogram for each feature
-    for i in range(0,  X[0].size):
-        hist_feature(i)
+    # Show all the figures at once
+    plt.show()
+
+# Generates a 2D plot of the given features using PCA
+# 
+# X - Pandas data set
+# Y - labels from clustering
+# F - the features include in PCA plot (an array of strings)
+def pca(X,  Y,  F):
+    # Subset of X that has been selected
+    X_selected = X[F]
     
     # Reduce X to 2 dimensions using principle component analysis
-    X_2D = PCA(n_components=2).fit_transform(X)
+    X_2D = PCA(n_components=2).fit_transform(X_selected.values)
 
-    # list of k empty lists
-    sets = np.ndarray(shape  = (k,  0)).tolist()
-
-    # Divide up into subsets based on clustering label
-    for i in range(0,  Y.size):
-        sets[Y[i]].append(X_2D[i])
+    # Convert Numpy back to Pandas
+    X_2D = ps.DataFrame(X_2D)
+    
+    # Discover number of clusters from label vector Y
+    k = np.unique(Y).size
 
     # Colors for plotting
-    colors = ['b',  'r',  'g',  'y', 'm',  'c',  'k',  'w']
+    colors = ['b',  'r',  'g',  'c', 'm',  'y',  'k',  'w']
 
     # Plot each set in a different color
     for i in range(0,  k):
-        # Convert set to a numpy array
-        s = np.asarray(sets[i])
+        # Pandas data set of cluster k
+        s = X_2D[Y == i]
         
         # Plot the x and y coordinates of s using the appropriate color
-        plt.plot(s[:, 0],  s[:, 1],  "o" + colors[i],  markersize=4)
+        plt.plot(s[0],  s[1],  "o" + colors[i],  markersize=4)
 
-    plt.title("Scatter plot of clusters reduced to 2D by PCA")
+    plt.title("PCA plot (blue = 0, red = 1, green = 2, cyan = 3)")
     plt.show()
    
-# Test run with boston data set
+# Test run with Boston data set
 if __name__ == '__main__':
-    # Temporary dummy data
+    from sklearn.cluster import KMeans
     from sklearn.datasets import load_boston
-    X = load_boston().data
+    data = load_boston().data
+    X = ps. DataFrame(data=data,  columns=["wood", "stone",  "food",  "d", "c",  "e", "f",  "g",  "h",  "i",  "j",  "k",  "l"])
 
     k = 4
 
@@ -69,4 +83,6 @@ if __name__ == '__main__':
     # Label data points
     Y = kmeans.fit_predict(X)
 
-    visualize(X,  Y,  k)
+    F = ["wood", "stone",  "food"]
+    hist(X,  Y,  F)
+    pca(X,  Y,  F)
