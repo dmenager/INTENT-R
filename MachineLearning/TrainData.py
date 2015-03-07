@@ -19,7 +19,7 @@ n = 5
 #shift offset
 offset = 5
 #training data
-X = ps.read_csv(file_dir)
+X = ps.read_csv(file_dir, "\t")
 #hand labels
 
 #collect data into one object
