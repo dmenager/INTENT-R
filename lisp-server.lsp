@@ -411,13 +411,30 @@
 #| Get a random percent |#
 
 (defun random-percent ()
-  (/ (+ 0 (random (+ 1 (- 100 0)))) 100))
+  (/ (random 101) 100))
 
 #| Simulate an action in the MDP-R|#
 
-; graph = transition graph
+; mdpr = mdpr
 ; returns state
-(defun act (graph) 
+(defun act (mdpr) 
+  ; find all the probabilities of moving out of this state.
+  (let ((probs '()))
+    (map '()
+	 #'(lambda (state)
+	     (loop for i in state
+		  (if (not (= 0 (second i)))
+		      (cons i probs))))
+	 (nth (mdpr-cur-state mdpr) 
+	      (mdpr-graph mdpr)))
+  ; distribute probabilities accross dice
+    (map 'list 
+	 #'(lambda (frac)
+	     (/ 100 (denominator frac))))
+  ; roll dice
+    (random 101)
+
+  ; Follow transition
   )
 
 
