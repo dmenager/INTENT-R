@@ -1,6 +1,8 @@
 #folder name clientData /home/ec2-user/clientData
 import pandas as ps
 import numpy as np
+import random as rd
+import math
 import os.path
 
 file_counter = 0
@@ -19,20 +21,30 @@ offset = 5
 #training data
 X = ps.read_csv(file_dir)
 #hand labels
-Z = X["Label"]
-X = X.drop("Label", 1)
 
 #collect data into one object
 for filename in os.listdir(dir_name):
-	x = ps.read_csv(os.path.join(dir_name, filename))
-	x = x.ix[m:n]
-	z = x["Label"]
-	x = x.drop("Label", 1)
+	x = ps.read_csv(os.path.join(dir_name, filename), "\t")
+	#x = x.ix[m:n]
 	X = concat(X, x)
-	Z = concat(Z, z)
 	length.append(len(x.values))
 	file_counter++
-	
+
+row = X.index
+rows = list(row)
+rows = rd.shuffle(rows)
+X = X.reindex(rows)
+count = len(row)
+
+div = math.trunc(count * .3)
+
+train_X = X[div:]
+test_X = X[:div]
+train_Z = train_X["Label"]
+test_Z = test_X["Label"]
+train_X = train_X.drop("Label", 1)
+test_X = test_X.drop("Label", 1)	
+
 #Clustering
 # X - pandas DataFrame to be clustered
 # F - array of strings corresponding to desired features
