@@ -6,12 +6,12 @@ import math
 import os.path
 
 file_counter = 0
-dir_name = "/home/ec2-user/clientData"
+dir_name = "/home/ec2-user/ALLTHEDATA"
 
 #length of each file
 length = []
 #first template file dir
-file_dir =
+file_dir = "sample.csv"
 #excess offset top
 m = 5
 #excess offset bottom
