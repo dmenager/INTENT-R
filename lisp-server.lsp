@@ -105,7 +105,8 @@
 						connection)
 					(usocket:socket-close connection)	 
 					(setf (second (nth cnt *thread-variables*)) '())
-					(setf (first (nth cnt *thread-variables*)) '())))))
+					(setf (first (nth cnt *thread-variables*)) '())
+					(terminate-thread *current-thread*)))))
 		       
 		       ; 5 minute timeout
 		       (trivial-timers:schedule-timer timer (* 5 60))
@@ -137,7 +138,6 @@
       (setf (first (nth t-idx *thread-variables*)) t)
       (format *standard-output* "Handling request ~%")
       (format *standard-output* "Received: ~S~%" line)
-      (sleep 3)
       (format stream "got somethin yo!~%")
       (format clientData "~S~%" line))
     (force-output stream)
@@ -174,7 +174,7 @@
     ; create expert's feature expectations
 
     ;return reward function
-    mdp-r
+    (act mdp-r)
     
     ;(discover-reward mdp-r '() '())
   ))
@@ -422,11 +422,22 @@
   (let ((probs '()))
     (map '()
 	 #'(lambda (state)
-	     (loop for i in state
-		  (if (not (= 0 (second i)))
-		      (cons i probs))))
+	     (loop for a in state
+		  (format t "~S~%" (cdr a))))
+		  ;(if (not (= 0 (cdr a)))
+		   ;   (cons a probs))))
 	 (nth (mdpr-cur-state mdpr) 
-	      (mdpr-graph mdpr)))
+	      (mdpr-graph mdpr)))))
+    
+    #|(let* ((normalizer (reduce #'* (map 'list #'denominator probs)))
+	   (current 0)
+	   (allotments (loop for upper-bound in (mapcar
+						 #'(lambda (frac)
+						     (/ normalizer (denominator frac)))
+						 probs)
+			  collect (list current upper-bound))))
+      allotments)))
+    
   ; distribute probabilities accross dice
     (map 'list 
 	 #'(lambda (frac)
@@ -436,7 +447,7 @@
 
   ; Follow transition
   )
-
+|#
 
 #| SCRATCH 
 
