@@ -106,7 +106,7 @@
 					(usocket:socket-close connection)	 
 					(setf (second (nth cnt *thread-variables*)) '())
 					(setf (first (nth cnt *thread-variables*)) '())
-					(terminate-thread *current-thread*)))))
+					(sb-thread:terminate-thread sb-thread:*current-thread*)))))
 		       
 		       ; 5 minute timeout
 		       (trivial-timers:schedule-timer timer (* 5 60))
@@ -127,23 +127,29 @@
 ; timer = timeout timer 
 (defun handle-request (stream t-idx ostream timer)
   (trivial-timers:schedule-timer timer (* 5 60))
-  (with-open-file (clientData (concatenate 'string 
-					   "clientData/"
-					   (write-to-string (read stream)) ".txt")
-			      :direction :output
-			      :if-does-not-exist :create
-			      :if-exists :append)
-    (format t "got here!~%")
-    (let ((line (read-line stream nil 'the-end))
-	  (*standard-output* ostream))
-      (setf (first (nth t-idx *thread-variables*)) t)
-      (format *standard-output* "Handling request ~%")
-      (format *standard-output* "Received: ~S~%" line)
-      (format stream "got somethin yo!~%")
-      (format clientData "~S~%" line))
-    (force-output stream)
-    (force-output clientData)))
-
+  (let ((client-id (write-to-string (read stream))))
+    (with-open-file (clientData (concatenate 'string 
+					     "clientData/"
+					     client-id ".txt")
+				:direction :output
+				:if-exists :append
+				:if-does-not-exist :create)
+      (let ((line (read-line stream nil 'the-end))
+	    (*standard-output* ostream))
+	(setf (first (nth t-idx *thread-variables*)) t)
+	(format *standard-output* "Handling request ~%")
+	(format *standard-output* "Received: ~S~%" line)
+	(multiple-value-bind (out err pid)
+	    (run-shell-commnad (concatenate 'string "python predict.py " client-id " &")
+			       :wait '()
+			       :output :stream
+			       :error-output :stream)
+	  (with-open-stream (out out)
+	    (format stream (concatenate 'string "Prediction: " (values (read-line out))))))
+	(format clientData "~S~%" line))
+      (force-output stream)
+      (force-output clientData))))
+    
 
 (defun to-syms (inp)
   (let ((syms '()))
