@@ -131,8 +131,9 @@
 					   "clientData/"
 					   (write-to-string (read stream)) ".txt")
 			      :direction :output
-			      :if-exists :append
-			      :if-does-not-exist :create)
+			      :if-does-not-exist :create
+			      :if-exists :append)
+    (format t "got here!~%")
     (let ((line (read-line stream nil 'the-end))
 	  (*standard-output* ostream))
       (setf (first (nth t-idx *thread-variables*)) t)
