@@ -69,7 +69,7 @@
 
 (defun tcp-test-send ()
   (let ((stream (usocket:socket-stream conn)))
-  (format stream "ABCD Hello World!~%")
+  (format stream "12345678 Hello World!~%")
   (force-output stream)
   (read-line stream nil)))
 
@@ -129,25 +129,26 @@
   (trivial-timers:schedule-timer timer (* 5 60))
   (let ((client-id (write-to-string (read stream))))
     (with-open-file (clientData (concatenate 'string 
-					     "clientData/"
+					     "MachineLearning/"
 					     client-id ".txt")
 				:direction :output
 				:if-exists :append
 				:if-does-not-exist :create)
       (let ((line (read-line stream nil 'the-end))
-	    (*standard-output* ostream))
+	    (*standard-output* ostream)
+	    (result (read-line (sb-ext:process-output 
+				(sb-ext:run-program 
+				 "python" 
+				 (list "/MachineLearning/predict.py" client-id) 
+				 :search t 
+				 :wait '() 
+				 :output :stream 
+				 :error :stream)) 
+			       '())))
 	(setf (first (nth t-idx *thread-variables*)) t)
 	(format *standard-output* "Handling request ~%")
 	(format *standard-output* "Received: ~S~%" line)
-	(format stream (read-line (sb-ext:process-output 
-				   (sb-ext:run-program 
-				    "python" 
-				    '("/home/dmenager/Code/SchoolProjects/EECS_581/INTENT-R/MachineLearning/predict.py" client-id) 
-				    :search t 
-				    :wait '() 
-				    :output :stream 
-				    :error :stream)) 
-				  '()))
+	(format stream "~S~%" result)
 	(format clientData "~S~%" line))
       (force-output stream)
       (force-output clientData))))
