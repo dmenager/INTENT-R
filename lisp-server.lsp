@@ -139,13 +139,15 @@
 	(setf (first (nth t-idx *thread-variables*)) t)
 	(format *standard-output* "Handling request ~%")
 	(format *standard-output* "Received: ~S~%" line)
-	(multiple-value-bind (out err pid)
-	    (run-shell-commnad (concatenate 'string "python predict.py " client-id " &")
-			       :wait '()
-			       :output :stream
-			       :error-output :stream)
-	  (with-open-stream (out out)
-	    (format stream (concatenate 'string "Prediction: " (values (read-line out))))))
+	(format stream (read-line (sb-ext:process-output 
+				   (sb-ext:run-program 
+				    "python" 
+				    '("/home/dmenager/Code/SchoolProjects/EECS_581/INTENT-R/MachineLearning/predict.py" client-id) 
+				    :search t 
+				    :wait '() 
+				    :output :stream 
+				    :error :stream)) 
+				  '()))
 	(format clientData "~S~%" line))
       (force-output stream)
       (force-output clientData))))
