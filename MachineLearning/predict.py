@@ -6,10 +6,10 @@ import pickle as pkl
 import sys
 
 #clf = joblib.load('SVM.pkl')
-f = open('SVM.spkl', 'r')
+f = open('/home/ec2-user/INTENT-R/MachineLearning/SVM.spkl', 'r')
 clf = pkl.loads(f.read())
 
-filename = "../clientData/" + sys.argv[1] + ".txt"
+filename = "/home/ec2-user/INTENT-R/clientData/" + sys.argv[1] + ".txt"
 H = ['time','food','dFood','wood','dWood','stone','dStone','metal','dMetal','inf','dInf','wrkr\
 ','dWrkr','fmales','dFmales','cvlry','dCvlry','chmp','dChmp','hero','dHero','ships','dShips','\
 house','dHouse','econ','dEcon','outpst','dOutpst','mltry','dMltry','fortr','dFortr','civCnt','\
