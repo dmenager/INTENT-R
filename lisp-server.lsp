@@ -129,7 +129,7 @@
   (trivial-timers:schedule-timer timer (* 5 60))
   (let ((client-id (write-to-string (read stream))))
     (with-open-file (clientData (concatenate 'string 
-					     "MachineLearning/"
+					     "clientData/"
 					     client-id ".txt")
 				:direction :output
 				:if-exists :append
