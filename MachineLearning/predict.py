@@ -4,7 +4,7 @@ import numpy as np
 import pickle as pkl
 #from sklearn.externals import joblib
 import sys
-import os
+#import os
 
 #clf = joblib.load('SVM.pkl')
 f = open('/home/ec2-user/INTENT-R/MachineLearning/SVM.spkl', 'r')
@@ -17,7 +17,7 @@ house','dHouse','econ','dEcon','outpst','dOutpst','mltry','dMltry','fortr','dFor
 dCivCnt','wndr','dWndr','enK','dEnK','enBldD','dEnBldD','unitsL','dUnitsL','bldL','dBldL','Lab\
 el']
 x = ps.read_csv(filename, delim_whitespace=True, names=H)
-os.remove(filename)
+#os.remove(filename)
 
 # Drop hand label
 x = x.drop("Label", 1)
