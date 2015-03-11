@@ -144,7 +144,7 @@
 	     (with-input-from-string (in line)
 			(loop for x = (read in nil nil)
 			   while x collect x)))
-	(format clientData "~S~%" line)
+	(format clientData "~%")
 	(force-output clientData)
 	(format *standard-output* "Received: ~S~%" line)))
     (let ((result (read-line (sb-ext:process-output 
