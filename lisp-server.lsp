@@ -136,20 +136,20 @@
 				:if-does-not-exist :create)
       (let ((line (read-line stream nil 'the-end))
 	    (*standard-output* ostream))
+	(format *standard-output* "Handling request ~%")
 	(setf (first (nth t-idx *thread-variables*)) t)
 	(format clientData "~S~%" line)
-	(let ((result (read-line (sb-ext:process-output 
-				(sb-ext:run-program 
-				 "python" 
-				 (list "/MachineLearning/predict.py" client-id) 
-				 :search t 
-				 :wait '() 
-				 :output :stream 
-				 :error :stream)) 
-			       '())))`
-	  (format *standard-output* "Handling request ~%")
-	  (format *standard-output* "Received: ~S~%" line)
-	  (format stream "~S~%" result)))
+	(format *standard-output* "Received: ~S~%" line)))
+    (let ((result (read-line (sb-ext:process-output 
+			      (sb-ext:run-program 
+			       "python" 
+			       (list "/MachineLearning/predict.py" client-id) 
+			       :search t 
+			       :wait '() 
+			       :output :stream 
+			       :error :stream)) 
+			     '())))
+      (format stream "~S~%" result)
       (force-output stream)
       (force-output clientData))))
     
