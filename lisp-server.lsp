@@ -150,7 +150,7 @@
     (let ((result (read-line (sb-ext:process-output 
 			      (sb-ext:run-program 
 			       "python" 
-			       (list "/MachineLearning/predict.py" client-id) 
+			       (list "/home/ec2-user/INTENT-R/MachineLearning/predict.py" client-id) 
 			       :search t 
 			       :wait '() 
 			       :output :stream 
