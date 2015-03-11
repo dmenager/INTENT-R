@@ -69,7 +69,7 @@
 
 (defun tcp-test-send ()
   (let ((stream (usocket:socket-stream conn)))
-  (format stream "12345678 Hello World!~%")
+  (format stream "ABCD Hello World!~%")
   (force-output stream)
   (read-line stream nil)))
 
@@ -136,7 +136,6 @@
 				:if-does-not-exist :create)
       (let ((line (read-line stream nil 'the-end))
 	    (*standard-output* ostream))
-	(format *standard-output* "Handling request ~%")
 	(setf (first (nth t-idx *thread-variables*)) t)
 	(map '() 
 	     #'(lambda (feature)
