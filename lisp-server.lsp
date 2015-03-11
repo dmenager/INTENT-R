@@ -139,6 +139,7 @@
 	(format *standard-output* "Handling request ~%")
 	(setf (first (nth t-idx *thread-variables*)) t)
 	(format clientData "~S~%" line)
+	(force-output clientData)
 	(format *standard-output* "Received: ~S~%" line)))
     (let ((result (read-line (sb-ext:process-output 
 			      (sb-ext:run-program 
@@ -150,8 +151,7 @@
 			       :error :stream)) 
 			     '())))
       (format stream "~S~%" result)
-      (force-output stream)
-      (force-output clientData))))
+      (force-output stream))))
     
 
 (defun to-syms (inp)
