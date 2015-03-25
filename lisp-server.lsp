@@ -34,25 +34,25 @@
 
 (defvar *atomic-actions* '())
 (defvar *key* (make-hash-table))
-(setf (gethash 1 *key*)'attack)
-(setf (gethash 2 *key*) 'barter)
+;(setf (gethash 1 *key*)'attack)
+;(setf (gethash 2 *key*) 'barter)
 (setf (gethash 3 *key*)'create)
-(setf (gethash 4 *key*)'escort)
-(setf (gethash 5 *key*)'gather)
-(setf (gethash 6 *key*)'graze)
+;(setf (gethash 4 *key*)'escort)
+;(setf (gethash 5 *key*)'gather)
+;(setf (gethash 6 *key*)'graze)
 (setf (gethash 7 *key*)'heal)
 (setf (gethash 8 *key*)'lock)
 (setf (gethash 9 *key*)'loot)
 (setf (gethash 10 *key*)'move)
-(setf (gethash 11 *key*)'patrol)
+;(setf (gethash 11 *key*)'patrol)
 (setf (gethash 12 *key*)'repair)
-(setf (gethash 13 *key*)'scout)
+;(setf (gethash 13 *key*)'scout)
 (setf (gethash 14 *key*)'trade)
-(setf (gethash 15 *key*)'infantry-units) 
-(setf (gethash 16 *key*)'cavalry-units) 
+(setf (gethash 15 *key*)'military-units) 
+;(setf (gethash 16 *key*)'cavalry-units) 
 (setf (gethash 17 *key*)'support-units) 
-(setf (gethash 18 *key*)'siege-units) 
-(setf (gethash 19 *key*)'naval-units) 
+;(setf (gethash 18 *key*)'siege-units) 
+;(setf (gethash 19 *key*)'naval-units) 
 (setf (gethash 20 *key*) 'structures)
 (setf (gethash 21 *key*) 'resources)
 
@@ -339,7 +339,7 @@
 				       '()))
 			       acc))))
   
-#|Perform n chose count combination |#
+#|Perform n choose count combination |#
 
 ; list = list to perform combinations on
 ; count = choose
