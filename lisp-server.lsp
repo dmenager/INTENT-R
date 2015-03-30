@@ -311,14 +311,17 @@
 
 
 #| build transition graph: 
-   (([A -> A] [A -> B] ... [A -> N])
-   ([B -> A] [B -> B] ... [B -> N])
+   (([A -> A] . % [A -> B] . % ... [A -> N] . %)
+    ([B -> A] . % [B -> B] . % ... [B -> N] . %)
     .
     .
     .
-   ([N -> A] [N -> B] ... [N -> N]))
+    ([N -> A] . % [N -> B] . % ... [N -> N] . %))
    
-   [A -> B] = list of all possible actions from A to B|#
+   [A -> B] . % = list of all possible actions from A to B. Each action has a probability.
+   . % is the probability of going from A -> B.
+   
+   Figuring out a move is esentially P(ai | A -> B)|#
 
 ; mdpr = mdpr simulation
 (defun make-graph (mdpr)  
@@ -327,13 +330,13 @@
 	  (mdpr-states mdpr)))
 
 (defun make-transition (mdpr)
-  (mapcar
-       #'(lambda (state) ; Make n x n matrix with each entry a list of possible actions
-	   (let ((state-row '()))
-	     ;(setq state-row (reverse (cons (make-action-list (mdpr-actions mdpr)) 
-	     ;(reverse state-row))))
-	     (setq state-row (make-action-list (mdpr-actions mdpr)))))
-       (mdpr-states mdpr)))
+  (cons (mapcar
+	 #'(lambda (state) ; Make n x n matrix with each entry a list of possible actions
+	     (let ((state-row '()))
+	       ;(setq state-row (reverse (cons (make-action-list (mdpr-actions mdpr)) 
+	       ;(reverse state-row))))
+	       (setq state-row (make-action-list (mdpr-actions mdpr)))))
+	 (mdpr-states mdpr)) 0))
 
 (defun make-action-list (mdpr-actions)
   (map 'list
@@ -341,10 +344,20 @@
 	   (list action 0))
        mdpr-actions))
 
-#| Assign the transition probabilities for each node |#
+#| Assign the transition probabilities for each node 
 
-; TODO: figure real transition probabilities
-; TODO: (edge-to)
+   (([A -> A] . % [A -> B] . % ... [A -> N] . %)
+    ([B -> A] . % [B -> B] . % ... [B -> N] . %)
+    .
+    .
+    .
+    ([N -> A] . % [N -> B] . % ... [N -> N] . %))
+   
+   [A -> B] . % = list of all possible actions from A to B. Each action has a probability.
+   . % is the probability of going from A -> B.
+   
+   Figuring out a move is esentially P(ai | A -> B)|#
+
 (defun make-transition-probs (mdpr))
 
 #| Discovers reward function |#
@@ -435,7 +448,7 @@
 (defun test-act () 
   ; find all the probabilities of moving out of this state.
   (let* ((probs '())
-	 (possible-actions 
+	 (possible-moves 
 	  (mapcar
 	   #'(lambda (transition)
 	       (format t "Transition: ~S~%" transition)
@@ -444,21 +457,41 @@
 			  (loop for a in transition do
 			       (push (second a) probs)
 			     collect a)))
-	   (nth 0 
-		'((((((1 2 3 4) (5 6 7 8)) 4/5) (((1 2 3 4)) 1/2) (((5 6 7 8)) 3/8) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 1/10) (((1 2 3 4)) 1/6) (((5 6 7 8)) 1/4) (NIL 2/5))
-		   ((((1 2 3 4) (5 6 7 8)) 2/3) (((1 2 3 4)) 2/9) (((5 6 7 8)) 5/9) (NIL 1/9)))
-		  (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))
-		  (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))))))
+	   (first (nth 0 
+		       '(((((((1 2 3 4) (5 6 7 8)) 1/4) (((1 2 3 4)) 2/4) (((5 6 7 8)) 1/8) (NIL 1/8))
+			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
+			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))
+			  . 0)
+			 ((((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
+			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
+			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))
+			  . 0)
+			 ((((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
+			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
+			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))
+			  . 0))))))
 	 (normalizer (reduce #'lcm (map 'list 
 				      #'(lambda (rational)
 					  (denominator rational))
-				      probs))))
-    normalizer))
+				      probs)))
+    
+    ; There is one extra list embedding here, but this works..well enough to keep moving
+	 (move-list (mapcar #'(lambda (move) 
+				(mapcar #'(lambda (action)
+					    (format t "~S~%" action)
+					    (let ((copy-times (* (numerator (second action))
+								 (/ normalizer 
+								    (denominator (second action))))))
+					      (format t "Copy times: ~d~%~%" copy-times)
+					      (loop for i from 1 to copy-times 
+						 collect (first action))))
+					move))
+			    possible-moves))
+	 (choices (first (nth (random (length move-list)) move-list))))
+    (format t "Possible moves: ~S~%" possible-moves)
+    (if (not (null choices))
+	(nth (random (length choices)) choices)
+	choices)))
 
 #| SCRATCH 
 
@@ -478,9 +511,6 @@
 
 (format ostream "Using count: ~d~%" t-idx) 
 
-; Filling action space
-(remove-if-not #'(lambda (x)
-			    (getf x :a)) '((:a 1) (:b 2)))
 ; modifying plist
 (let ((x '(:a 1 :b 2)))
 	   (setf (getf x :a) 'artist)
