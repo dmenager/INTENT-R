@@ -330,13 +330,11 @@
 	  (mdpr-states mdpr)))
 
 (defun make-transition (mdpr)
-  (cons (mapcar
-	 #'(lambda (state) ; Make n x n matrix with each entry a list of possible actions
-	     (let ((state-row '()))
-	       ;(setq state-row (reverse (cons (make-action-list (mdpr-actions mdpr)) 
-	       ;(reverse state-row))))
-	       (setq state-row (make-action-list (mdpr-actions mdpr)))))
-	 (mdpr-states mdpr)) 0))
+  (mapcar
+   #'(lambda (state) ; Make n x n matrix with each entry a list of possible actions
+       (let ((state-row '()))
+	 (setq state-row (make-action-list (mdpr-actions mdpr)))))
+   (mdpr-states mdpr)))
 
 (defun make-action-list (mdpr-actions)
   (map 'list
@@ -447,29 +445,25 @@
 
 (defun test-act () 
   ; find all the probabilities of moving out of this state.
-  (let* ((probs '())
+  (let* ((graph '((((((1 2 3 4) (5 6 7 8)) 1/9) (((1 2 3 4)) 0) (((5 6 7 8)) 1/9) (NIL 0))
+		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 1/9) (((5 6 7 8)) 3/9) (NIL 0))
+		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 2/9) (((5 6 7 8)) 3/9) (NIL 0)))
+		  (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
+		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
+		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))
+		  (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
+		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
+		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))))
+	 (probs '())
 	 (possible-moves 
-	  (mapcar
-	   #'(lambda (transition)
-	       (format t "Transition: ~S~%" transition)
-	       (remove-if #'(lambda (x)
-			      (zerop (second x)))
-			  (loop for a in transition do
-			       (push (second a) probs)
-			     collect a)))
-	   (first (nth 0 
-		       '(((((((1 2 3 4) (5 6 7 8)) 1/4) (((1 2 3 4)) 2/4) (((5 6 7 8)) 1/8) (NIL 1/8))
-			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))
-			  . 0)
-			 ((((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))
-			  . 0)
-			 ((((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-			   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))
-			  . 0))))))
+	  (mapcar #'(lambda (transition)
+		      (format t "Transition: ~S~%" transition)
+		      (remove-if #'(lambda (x)
+				     (zerop (second x)))
+				 (loop for a in transition do
+				      (push (second a) probs)
+				    collect a)))
+		  (nth 0 graph))) ; 0 is going to be cur state of mdpr
 	 (normalizer (reduce #'lcm (map 'list 
 				      #'(lambda (rational)
 					  (denominator rational))
@@ -477,7 +471,7 @@
     
     ; There is one extra list embedding here, but this works..well enough to keep moving
 	 (move-list (mapcar #'(lambda (move) 
-				(mapcar #'(lambda (action)
+				(mnconc (mapcar #'(lambda (action)
 					    (format t "~S~%" action)
 					    (let ((copy-times (* (numerator (second action))
 								 (/ normalizer 
@@ -485,13 +479,22 @@
 					      (format t "Copy times: ~d~%~%" copy-times)
 					      (loop for i from 1 to copy-times 
 						 collect (first action))))
-					move))
+					move)))
 			    possible-moves))
-	 (choices (first (nth (random (length move-list)) move-list))))
+	 (choices (nth (random (length move-list)) move-list)))
+    (format t "Moves list: ~S~%" move-list)
     (format t "Possible moves: ~S~%" possible-moves)
     (if (not (null choices))
 	(nth (random (length choices)) choices)
 	choices)))
+
+#|nconc for list of lists|#
+
+; llist = list of list
+(defun mnconc (llist)
+  (if (>= 2 (length llist))
+      (nconc (first llist) (second llist))
+      (nconc (first llist) (mnconc (rest llist)))))
 
 #| SCRATCH 
 
