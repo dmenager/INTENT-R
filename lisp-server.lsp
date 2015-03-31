@@ -485,7 +485,7 @@
 				  (floor (/ normalizer (denominator (cdr (third (nth 0 graph)))))))))
 	 (state-list (loop for i from  1 to 100 collect (funcall gen)))
 	 (next-state (nth (random (length state-list)) state-list))
-	 (choices (nth next-state move-list))) ; NEXT STATE is NULL SOMETIMES!!!!!
+	 (choices (nth next-state move-list)))
     (format t "State list: ~S~%" state-list)
     (format t "Next State: ~d~%" next-state)
     (format t "Moves list: ~S~%" move-list)
