@@ -337,10 +337,10 @@
    (mdpr-states mdpr)))
 
 (defun make-action-list (mdpr-actions)
-  (map 'list
-       #'(lambda (action)
-	   (list action 0))
-       mdpr-actions))
+  (cons (map 'list
+	     #'(lambda (action)
+		 (list action 0))
+	     mdpr-actions) 0))
 
 #| Assign the transition probabilities for each node 
 
@@ -445,22 +445,22 @@
 
 (defun test-act () 
   ; find all the probabilities of moving out of this state.
-  (let* ((graph '((((((1 2 3 4) (5 6 7 8)) 1/9) (((1 2 3 4)) 0) (((5 6 7 8)) 1/9) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 1/9) (((5 6 7 8)) 3/9) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 2/9) (((5 6 7 8)) 3/9) (NIL 0)))
-		  (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))
-		  (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0))
-		   ((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)))))
+  (let* ((graph '(((((((1 2 3 4) (5 6 7 8)) 1/9) (((1 2 3 4)) 0) (((5 6 7 8)) 1/9) (NIL 0)) . 1/3)
+		   (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 1/9) (((5 6 7 8)) 3/9) (NIL 0)) . 0)
+		   (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 2/9) (((5 6 7 8)) 3/9) (NIL 0)) . 2/3))
+		  ((((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)) . 0)
+		   (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)) . 0)
+		   (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)) . 0))
+		  ((((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)) . 0)
+		   (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)) . 0)
+		   (((((1 2 3 4) (5 6 7 8)) 0) (((1 2 3 4)) 0) (((5 6 7 8)) 0) (NIL 0)) . 0))))
 	 (probs '())
 	 (possible-moves 
 	  (mapcar #'(lambda (transition)
-		      (format t "Transition: ~S~%" transition)
+		      (format t "Transition: ~S~%" (car transition))
 		      (remove-if #'(lambda (x)
 				     (zerop (second x)))
-				 (loop for a in transition do
+				 (loop for a in (car transition) do
 				      (push (second a) probs)
 				    collect a)))
 		  (nth 0 graph))) ; 0 is going to be cur state of mdpr
@@ -468,8 +468,6 @@
 				      #'(lambda (rational)
 					  (denominator rational))
 				      probs)))
-    
-    ; There is one extra list embedding here, but this works..well enough to keep moving
 	 (move-list (mapcar #'(lambda (move) 
 				(mnconc (mapcar #'(lambda (action)
 					    (format t "~S~%" action)
@@ -481,12 +479,20 @@
 						 collect (first action))))
 					move)))
 			    possible-moves))
-	 (choices (nth (random (length move-list)) move-list)))
+	 (gen (biased-generator '(0 1 2) 
+				(list (floor (/ normalizer (denominator (cdr (first (nth 0 graph)))))) 
+				  (floor (/ normalizer (denominator (cdr (second (nth 0 graph))))))
+				  (floor (/ normalizer (denominator (cdr (third (nth 0 graph)))))))))
+	 (state-list (loop for i from  1 to 100 collect (funcall gen)))
+	 (next-state (nth (random (+ 1 (length state-list))) state-list))
+	 (choices (nth next-state move-list)))
+    (format t "State list: ~S~%" state-list)
+    (format t "Next State: ~d~%" next-state)
     (format t "Moves list: ~S~%" move-list)
     (format t "Possible moves: ~S~%" possible-moves)
-    (if (not (null choices))
-	(nth (random (length choices)) choices)
-	choices)))
+    (cons (if (not (null choices))
+	      (nth (random (length choices)) choices)
+	      choices) next-state)))
 
 #|nconc for list of lists|#
 
@@ -495,6 +501,16 @@
   (if (>= 2 (length llist))
       (nconc (first llist) (second llist))
       (nconc (first llist) (mnconc (rest llist)))))
+
+(defun biased-generator (values weights)
+  (multiple-value-bind (total values)
+      (loop for v in values
+         for w in weights
+         nconc (make-list w :initial-element v) into vs
+         sum w into total
+         finally (return (values total (coerce vs 'vector))))
+    (lambda ()
+      (aref values (random total)))))
 
 #| SCRATCH 
 
