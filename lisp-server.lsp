@@ -577,6 +577,9 @@ Trade-resources
 
 (format ostream "Using count: ~d~%" t-idx) 
 
+; Filling action space
+(remove-if-not #'(lambda (x)
+			    (getf x :a)) '((:a 1) (:b 2)))
 ; modifying plist
 (let ((x '(:a 1 :b 2)))
 	   (setf (getf x :a) 'artist)
