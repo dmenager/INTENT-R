@@ -41,20 +41,33 @@
 ;(setf (gethash 5 *key*)'gather)
 ;(setf (gethash 6 *key*)'graze)
 (setf (gethash 2 *key*)'heal)
-(setf (gethash 3 *key*)'lock)
-(setf (gethash 4 *key*)'loot)
+(setf (gethash 3 *key*)'raise-alert)
+;(setf (gethash 4 *key*)'loot)
 (setf (gethash 5 *key*)'move)
 ;(setf (gethash 11 *key*)'patrol)
 (setf (gethash 6 *key*)'repair)
 ;(setf (gethash 13 *key*)'scout)
-(setf (gethash 7 *key*)'trade)
+(setf (gethash 7 *key*)'trade-resources)
 (setf (gethash 8 *key*)'military-units) 
 ;(setf (gethash 16 *key*)'cavalry-units) 
 (setf (gethash 9 *key*)'support-units) 
 ;(setf (gethash 18 *key*)'siege-units) 
 ;(setf (gethash 19 *key*)'naval-units) 
 (setf (gethash 10 *key*) 'structures)
-(setf (gethash 11 *key*) 'resources)
+;(setf (gethash 11 *key*) 'resources)
+
+#| ACTION WEIGHTS
+Raise-alert
+Move-military
+Create-military
+Create-structures
+Repair-structure
+Heal-military
+Heal-support
+Create-support
+Move-support
+Trade-resources
+|#
 
 (defvar *entities* '((make-entity :name 'infantry-units :type 'infantry :owner '())
 		    (make-entity :name 'cavalry-units :type 'cavalry :owner '())
@@ -182,15 +195,15 @@
     ; update :owner for each player in game
     ; fill state/action space
     (setf (mdpr-states mdp-r) (make-state-space '()))
-    ;(setf (mdpr-actions mdp-r) (enumerate-action-space))
-    (setf (mdpr-actions mdp-r) (test-enum-actions))
+    (setf (mdpr-actions mdp-r) (enumerate-action-space))
+    ;(setf (mdpr-actions mdp-r) (test-enum-actions))
 
     ; create transition probabilites
     (setf (mdpr-graph mdp-r) (make-graph mdp-r))
     ; create expert's feature expectations
 
     ;return reward function
-    ;(act mdp-r)
+    (act mdp-r)
     
     ;(discover-reward mdp-r '() '())
   ))
@@ -220,13 +233,13 @@
 (defun enumerate-action-space ()
   (let ((acc '()))
     (do ((i 1 (incf i)))
-	((= i 11))
+	((= i 10))
       (do ((j 0 (incf j)))
-	  ((= j 11))
+	  ((= j 10))
 	(do ((k 0 (incf k)))
-	  ((= k 11))
+	  ((= k 10))
 	  (do ((l 0 (incf l)))
-	      ((= l 11))
+	      ((= l 10))
 	    (let ((unfiltered (copy-list '(0 0 0 0))))
 	      (setf (nth 0 unfiltered) i)
 	      (setf (nth 1 unfiltered) j)
@@ -241,7 +254,7 @@
 							     (and (> (nth 3 list) 0)
 								  (<= (nth 3 list) 7))
 							     (eq 10 (nth 3 list))
-							     (eq 11 (nth 3 list))
+							     (= 4 (nth 0 list))
 							     (>  (nth 0 list) 7)
 							     (and (<= (nth 0 list) 7)
 								 (> (nth 1 list) 9))
@@ -249,7 +262,7 @@
 								  (or (> (nth 1 list) 0)
 								      (> (nth 3 list) 0)
 								      (< (nth 2 list) 8)
-								      (= 11 (nth 2 list))
+								      
 								      (= 0 (nth 2 list))))  
 							     (and (eq 2 (nth 0 list))
 								  (or (not (= 9 (nth 1 list)))
@@ -259,8 +272,7 @@
 							    (and (eq 3 (nth 0 list))
 								 (or (> (nth 1 list) 0)
 								     (> (nth 3 list) 0)
-								     (not (= 10 (nth 2 list)))
-								     (= 0 (nth 2 list))))
+								     (> (nth 2 list) 0)))
 							    (and (eq 4 (nth 0 list))
 								 (or (> (nth 1 list) 0)
 								     (> (nth 3 list) 0)
@@ -269,8 +281,9 @@
 							    (and (eq 5 (nth 0 list))
 								 (or (> (nth 1 list) 0)
 								     (> (nth 2 list) 0)
-								     (not (or (= 8 (nth 3 list))
-									      (= 9 (nth 3 list))))
+								     (not 
+								      (or (= 8 (nth 3 list))
+									  (= 9 (nth 3 list))))
 								     (= 0 (nth 3 list))))
 							    (and (eq 6 (nth 0 list))
 								 (or (> (nth 1 list) 0)
@@ -280,21 +293,18 @@
 							    (and (eq 7 (nth 0 list))
 								 (or (> (nth 1 list) 0)
 								     (> (nth 3 list) 0)
-								     (= (nth 2 list) 0)
-								     (= (nth 2 list) 10)))) 
+								     (> (nth 2 list) 0)))) 
 							t
 							'()))
 						acc) :test 'equal)))
       (nconc (combinations 2 actions)
-	     (combinations 1 actions)
-	     (combinations 0 actions)))))
+	     (combinations 1 actions)))))
   
 
 (defun test-enum-actions ()
   (let ((actions '((1 2 3 4) (5 6 7 8))))
     (nconc (combinations 2 actions)
-	   (combinations 1 actions)
-	   (combinations 0 actions))))
+	   (combinations 1 actions))))
 #|Perform n choose count combination |#
 
 ; list = list to perform combinations on
@@ -330,17 +340,31 @@
 	  (mdpr-states mdpr)))
 
 (defun make-transition (mdpr)
-  (mapcar
-   #'(lambda (state) ; Make n x n matrix with each entry a list of possible actions
-       (let ((state-row '()))
-	 (setq state-row (make-action-list (mdpr-actions mdpr)))))
-   (mdpr-states mdpr)))
+  (let ((l (make-list 100 :initial-element 'x)))
+    (mapcar
+     #'(lambda (state) ; Make n x n matrix with each entry a list of possible actions
+	 (let ((state-row '())
+	       (res (make-action-list (mdpr-actions mdpr) 
+					     l 
+					     (- (length (mdpr-states mdpr))
+						(position state (mdpr-states mdpr) 
+							  :test 'equal)))))
+	   (setq l (first res))
+	   (setq state-row (second res))))
+     (mdpr-states mdpr))))
 
-(defun make-action-list (mdpr-actions)
-  (cons (map 'list
-	     #'(lambda (action)
-		 (list action 0))
-	     mdpr-actions) 0))
+(defun make-action-list (mdpr-actions ll numstates)
+  (let ((l (make-list 100 :initial-element 'x))
+	(res-base (percentage-piece ll numstates)))
+    (list (first res-base) 
+	  (cons (map 'list
+		     #'(lambda (action)
+			 (let ((res (percentage-piece l (- (length mdpr-actions)
+							   (position action mdpr-actions :test 'equal)))))
+			   (setq l (first res))
+			   (list action (second res))))
+		     mdpr-actions) 
+		(second res-base)))))
 
 #| Assign the transition probabilities for each node 
 
@@ -405,43 +429,66 @@
 (defun random-percent ()
   (/ (random 101) 100))
 
+
+#| Return a the remaining portion of a list |#
+
+; l = list to split
+; numargs = arguments left before execution
+(defun percentage-piece (l numargs)
+  (if (<= numargs 1)
+      (list '() (/ (length l) 100))
+      (let ((split (random (length l))))
+	(list (nthcdr split l) (/ (length (subseq l 0 split)) 100)))))
+	
+
 #| Simulate an action in the MDP-R |#
 
 ; mdpr = mdpr
 ; returns state
 (defun act (mdpr) 
   ; find all the probabilities of moving out of this state.
-  (let ((possible-actions '()))
-    (map 'list
-	 #'(lambda (state)
-	     (format t "State: ~S~%" state)
-	     (loop for transition in state do
-		  (loop for a in transition do
-		       (format t "~S~%" (second a))
-		       (if (not (= 0 (second a)))
-			   collect a))))
-	 (nth (mdpr-cur-state mdpr) 
-	      (mdpr-graph mdpr)))))
-    
-    #|(let* ((normalizer (reduce #'* (map 'list #'denominator probs)))
-	   (current 0)
-	   (allotments (loop for upper-bound in (mapcar
-						 #'(lambda (frac)
-						     (* normalizer (numerator frac)))
-						 probs)
-			  collect (list current upper-bound))))
-      allotments)))
-    
-  ; distribute probabilities accross dice
-    (map 'list 
-	 #'(lambda (frac)
-	     (/ 100 (denominator frac))))
-  ; roll dice
-    (random 101)
+  (let* ((probs '())
+	 (possible-moves 
+	  (mapcar #'(lambda (transition)
+		      (format t "Transition: ~S~%" (car transition))
+		      (remove-if #'(lambda (x)
+				     (zerop (second x)))
+				 (loop for a in (car transition) do
+				      (push (second a) probs)
+				    collect a)))
+		  (nth (mdpr-cur-state mdpr) (mdpr-graph mdpr))))
+	 (normalizer (reduce #'lcm (map 'list 
+				      #'(lambda (rational)
+					  (denominator rational))
+				      probs)))
+	 (move-list (mapcar #'(lambda (move) 
+				(mnconc (mapcar #'(lambda (action)
+					    (format t "~S~%" action)
+					    (let ((copy-times (* (numerator (second action))
+								 (/ normalizer 
+								    (denominator (second action))))))
+					      (format t "Copy times: ~d~%~%" copy-times)
+					      (loop for i from 1 to copy-times 
+						 collect (first action))))
+					move)))
+			    possible-moves))
+	 (gen (biased-generator '(0 1 2) 
+				(list (floor (/ normalizer (denominator (cdr (first (nth (mdpr-cur-state mdpr) (mdpr-graph mdpr))))))) 
+				  (floor (/ normalizer (denominator (cdr (second (nth (mdpr-cur-state mdpr) (mdpr-graph mdpr)))))))
+				  (floor (/ normalizer (denominator (cdr (third (nth (mdpr-cur-state mdpr) (mdpr-graph mdpr))))))))))
+	 (state-list (loop for i from  1 to 100 collect (funcall gen)))
+	 (next-state (nth (random (length state-list)) state-list))
+	 (choices (nth next-state move-list)))
+    (format t "State list: ~S~%" state-list)
+    (format t "Next State: ~d~%" next-state)
+    (format t "Moves list: ~S~%" move-list)
+    (format t "Possible moves: ~S~%" possible-moves)
 
-  ; Follow transition
-  )
-|#
+    (setf (mdpr-cur-state mdpr) next-state)
+    (format t "MDPR New State: ~d~%" (mdpr-cur-state mdpr))
+    (if (not (null choices))
+	(nth (random (length choices)) choices)
+	choices)))
 
 (defun test-act () 
   ; find all the probabilities of moving out of this state.
