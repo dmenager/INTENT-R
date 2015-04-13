@@ -9,7 +9,7 @@
 (defstruct mdpr 
   (states '() :type list) 
   (actions '() :type list)
-  (cur-state 0)
+  (cur-state (list (coerce '(10 10 10 500 10 10 10 10 10 3000 500 100) 'vector) 0)) ; State vector..guess
   (start-state 0)
   (graph '() :type list)
   (gamma 0.0 :type short-float))
@@ -42,8 +42,8 @@
 ;(setf (gethash 6 *key*)'graze)
 (setf (gethash 2 *key*)'heal)
 (setf (gethash 3 *key*)'raise-alert)
-;(setf (gethash 4 *key*)'loot)
-(setf (gethash 5 *key*)'move)
+(setf (gethash 4 *key*)'move-x)
+(setf (gethash 5 *key*)'move-y)
 ;(setf (gethash 11 *key*)'patrol)
 (setf (gethash 6 *key*)'repair)
 ;(setf (gethash 13 *key*)'scout)
@@ -54,7 +54,25 @@
 ;(setf (gethash 18 *key*)'siege-units) 
 ;(setf (gethash 19 *key*)'naval-units) 
 (setf (gethash 10 *key*) 'structures)
-;(setf (gethash 11 *key*) 'resources)
+(setf (gethash 11 *key*) 'unraise-alert)
+
+
+#| Returns the index of the feature in state vector that corresponds to action |#
+; (action with what who amount)
+(defvar *vector-keys* (make-hash-table :test 'equal))
+(setf (gethash '(1 0 8 0) *vector-keys*) 0)
+(setf (gethash '(1 0 9 0) *vector-keys*) 1)
+(setf (gethash '(1 0 10 0) *vector-keys*) 2)
+(setf (gethash '(2 0 8 0) *vector-keys*) 3)
+(setf (gethash '(3 0 0 0) *vector-keys*) 4)
+(setf (gethash '(4 0 8 0) *vector-keys*) 5)
+(setf (gethash '(4 0 9 0) *vector-keys*) 6)
+(setf (gethash '(5 0 8 0) *vector-keys*) 7)
+(setf (gethash '(5 0 9 0) *vector-keys*) 8)
+(setf (gethash '(6 0 10 0) *vector-keys*) 9)
+(setf (gethash '(7 0 0 0) *vector-keys*) 10)
+(setf (gethash '(11 0 8 0) *vector-keys*) 11)
+(setf (gethash '(2 0 9 0) *vector-keys*) 12)
 
 #| ACTION WEIGHTS
 Raise-alert
@@ -68,14 +86,6 @@ Create-support
 Move-support
 Trade-resources
 |#
-
-(defvar *entities* '((make-entity :name 'infantry-units :type 'infantry :owner '())
-		    (make-entity :name 'cavalry-units :type 'cavalry :owner '())
-		    (make-entity :name 'support-units :type 'support :owner '())
-		    (make-entity :name 'siege-units :type 'siege :owner '())
-		    (make-entity :name 'naval-units :type 'ship :owner '())
-		    (make-entity :name 'structures :type 'structure :owner '())
-		    (make-entity :name 'resources :type 'resourc :owner '())))
 
 (defun tcp-test-client (port)
   (setq conn (usocket:socket-connect usocket:*wildcard-host* port)))
@@ -181,10 +191,8 @@ Trade-resources
     (reverse syms)))
 
 #| Initialize MDP and expert's feature expectations |#
-
-; init-file = states, transition probabilities, m trajectories
-; return reward function   
-(defun init-apprentice (init-file)
+  
+(defun init-apprentice ()
   ; create MDP/R
   (let ((mdp-r (make-mdpr :states '()
 			  :actions '()
@@ -195,15 +203,16 @@ Trade-resources
     ; update :owner for each player in game
     ; fill state/action space
     (setf (mdpr-states mdp-r) (make-state-space '()))
-    (setf (mdpr-actions mdp-r) (enumerate-action-space))
-    ;(setf (mdpr-actions mdp-r) (test-enum-actions))
+    ;(setf (mdpr-actions mdp-r) (enumerate-action-space))
+    (setf (mdpr-actions mdp-r) (test-enum-actions))
 
     ; create transition probabilites
-    (setf (mdpr-graph mdp-r) (make-graph mdp-r))
+    (setf (mdpr-graph mdp-r) (make-transitions mdp-r))
     ; create expert's feature expectations
-
+    (mdpr-actions mdp-r)
     ;return reward function
-    (act mdp-r)
+    ;(format t "Simulate Action~%")
+    ;(act mdp-r)
     
     ;(discover-reward mdp-r '() '())
   ))
@@ -229,7 +238,8 @@ Trade-resources
 
 #|Determine action space in terms of codes|#
 
-; (action with what who)
+; (action with what who amount)
+; amount is a range 10 = 0 - 10. 20 = 11 = 20
 (defun enumerate-action-space ()
   (let ((acc '()))
     (do ((i 1 (incf i)))
@@ -240,12 +250,15 @@ Trade-resources
 	  ((= k 10))
 	  (do ((l 0 (incf l)))
 	      ((= l 10))
-	    (let ((unfiltered (copy-list '(0 0 0 0))))
+	    (do ((m 10 (+ 10 m)))
+	      ((= m 500))
+	    (let ((unfiltered (copy-list '(0 0 0 0 0))))
 	      (setf (nth 0 unfiltered) i)
 	      (setf (nth 1 unfiltered) j)
 	      (setf (nth 2 unfiltered) k)
 	      (setf (nth 3 unfiltered) l)
-	      (push unfiltered acc))))))
+	      (setf (nth 4 unfiltered) m)
+	      (push unfiltered acc)))))))
     (let ((actions (remove-duplicates (remove-if #'(lambda (list)
 						     (if (or (and (> (nth 1 list) 0)
 								  (<= (nth 1 list) 7))
@@ -261,26 +274,34 @@ Trade-resources
 							     (and (= 1 (nth 0 list))
 								  (or (> (nth 1 list) 0)
 								      (> (nth 3 list) 0)
+								      (> (nth 4 list) 50)
+								      (and (= (nth 2 list) 10)
+									   (> (nth 4 list) 10))
 								      (< (nth 2 list) 8)
-								      
 								      (= 0 (nth 2 list))))  
 							     (and (eq 2 (nth 0 list))
 								  (or (not (= 9 (nth 1 list)))
 								      (> (nth 2 list) 0)
 								      (> (nth 3 list) 9)
+								      (> (nth 4 list) 100)
 								      (= 0 (nth 3 list))))
 							    (and (eq 3 (nth 0 list))
 								 (or (> (nth 1 list) 0)
 								     (> (nth 3 list) 0)
-								     (> (nth 2 list) 0)))
+								     (> (nth 2 list) 0)
+								     (> (nth 4 list) 0)))
 							    (and (eq 4 (nth 0 list))
 								 (or (> (nth 1 list) 0)
-								     (> (nth 3 list) 0)
-								     (not (= 11 (nth 2 list)))
-								     (= 0 (nth 2 list))))
+								     (> (nth 2 list) 0)
+								     (> (nth 4 list) 500)
+								     (not 
+								      (or (= 8 (nth 3 list))
+									  (= 9 (nth 3 list))))
+								     (= 0 (nth 3 list))))
 							    (and (eq 5 (nth 0 list))
 								 (or (> (nth 1 list) 0)
 								     (> (nth 2 list) 0)
+								     (> (nth 4 list) 100)
 								     (not 
 								      (or (= 8 (nth 3 list))
 									  (= 9 (nth 3 list))))
@@ -288,16 +309,26 @@ Trade-resources
 							    (and (eq 6 (nth 0 list))
 								 (or (> (nth 1 list) 0)
 								     (> (nth 3 list) 0)
+								     (> (nth 4 list) 100)
 								     (not (= 10 (nth 2 list)))
 								     (= 0 (nth 2 list))))
 							    (and (eq 7 (nth 0 list))
 								 (or (> (nth 1 list) 0)
 								     (> (nth 3 list) 0)
-								     (> (nth 2 list) 0)))) 
+								     (> (nth 2 list) 0)
+								     (> (nth 4 list) 50)))) 
 							t
 							'()))
 						acc) :test 'equal)))
-      (nconc (combinations 2 actions)
+      (nconc ;(combinations 10 actions) 
+	     ;(combinations 9 actions) 
+	     ;(combinations 8 actions) 
+	     ;(combinations 7 actions)  SIMPLIFY COMBINATIONS LIKE ((5 0 0 8 10) (5 0 0 8 30))
+	     ;(combinations 6 actions) 
+	     ;(combinations 5 actions)  
+	     ;(combinations 4 actions) 
+	     ;(combinations 3 actions) 
+	     (combinations 2 actions)
 	     (combinations 1 actions)))))
   
 
@@ -339,10 +370,10 @@ Trade-resources
 	      (make-transition mdpr))
 	  (mdpr-states mdpr)))
 
-(defun make-transition (mdpr)
+(defun make-transition-2 (mdpr)
   (let ((l (make-list 100 :initial-element 'x)))
     (mapcar
-     #'(lambda (state) ; Make n x n matrix with each entry a list of possible actions
+     #'(lambda (action) ; Make n x n matrix with each entry a list of possible actions
 	 (let ((state-row '())
 	       (res (make-action-list (mdpr-actions mdpr) 
 					     l 
@@ -353,34 +384,28 @@ Trade-resources
 	   (setq state-row (second res))))
      (mdpr-states mdpr))))
 
-(defun make-action-list (mdpr-actions ll numstates)
+(defun make-transitions (mdpr)
+  (let ((l (make-list 100 :initial-element 'x)))
+    (format t "Action space: ~S~%~%" (mdpr-actions mdpr))
+    (mapcar #'(lambda (action)
+		(let ((res (make-action-list (mdpr-actions mdpr) l)))
+		  (format t "Action: ~S~%" action)
+		  (setq action (cons action (second res)))
+		  (format t "New Action: ~S~%~%" action)))
+	    (mdpr-actions mdpr))))
+; mdpr-actions = mdpr actions
+; ll = list used to figure probabilities
+; numstates = used to assign probability to last remaining action
+(defun make-action-list (mdpr-actions ll)
   (let ((l (make-list 100 :initial-element 'x))
-	(res-base (percentage-piece ll numstates)))
+	(res-base (percentage-piece ll)))
     (list (first res-base) 
-	  (cons (map 'list
-		     #'(lambda (action)
-			 (let ((res (percentage-piece l (- (length mdpr-actions)
-							   (position action mdpr-actions :test 'equal)))))
-			   (setq l (first res))
-			   (list action (second res))))
-		     mdpr-actions) 
-		(second res-base)))))
-
-#| Assign the transition probabilities for each node 
-
-   (([A -> A] . % [A -> B] . % ... [A -> N] . %)
-    ([B -> A] . % [B -> B] . % ... [B -> N] . %)
-    .
-    .
-    .
-    ([N -> A] . % [N -> B] . % ... [N -> N] . %))
-   
-   [A -> B] . % = list of all possible actions from A to B. Each action has a probability.
-   . % is the probability of going from A -> B.
-   
-   Figuring out a move is esentially P(ai | A -> B)|#
-
-(defun make-transition-probs (mdpr))
+	  (map 'list
+	       #'(lambda (action)
+		   (let ((res (percentage-piece l)))
+		     (setq l (first res))
+		     (list action (second res))))
+	       mdpr-actions))))
 
 #| Discovers reward function |#
 
@@ -405,24 +430,15 @@ Trade-resources
 
 ; mdpr = MDP simulator
 ; p = policy
-; returns feature expectations of p
+; returns feature expectations of pi (a vector)
 (defun mu (mdpr p)
   ;expected value of the sum of the discount * phi
-  (let* ((err .01)
-	 (gamma .5)
+  (let* ((err .001)
+	 (gamma .8)
 	 ;epsilon-horizon time
-	 (He (log (* err (- 1 gamma)) gamma)))
-    
-    (mapcar #'(lambda (&rest x) (reduce #'+ x))  
-	    (map 'list 
-		 #'(lambda (st)
-		     (do ((i 0 (1+ i))
-			  (>= i He))
-			 (map 'list 
-			      #'(lambda (comp)
-				  (* (expt gamma i) comp)) 
-			      st)))
-		 (act p)))))
+	 (He (ceiling (log (* err (- 1 gamma)) gamma))))
+    (loop for t from 0 to He do
+	 (*vector (expt gamma t) (act mdpr)))))
   
 #| Get a random percent |#
 
@@ -434,10 +450,10 @@ Trade-resources
 
 ; l = list to split
 ; numargs = arguments left before execution
-(defun percentage-piece (l numargs)
-  (if (<= numargs 1)
-      (list '() (/ (length l) 100))
-      (let ((split (random (length l))))
+(defun percentage-piece (l)
+  (let ((split (random (length l))))
+    (if (= 1 (length l))
+	(list '() (/ (length l) 100))
 	(list (nthcdr split l) (/ (length (subseq l 0 split)) 100)))))
 	
 
@@ -450,13 +466,13 @@ Trade-resources
   (let* ((probs '())
 	 (possible-moves 
 	  (mapcar #'(lambda (transition)
-		      (format t "Transition: ~S~%" (car transition))
+		      (format t "Working?~%")
 		      (remove-if #'(lambda (x)
 				     (zerop (second x)))
 				 (loop for a in (car transition) do
 				      (push (second a) probs)
 				    collect a)))
-		  (nth (mdpr-cur-state mdpr) (mdpr-graph mdpr))))
+		  (nth (second (mdpr-cur-state mdpr)) (mdpr-graph mdpr))))
 	 (normalizer (reduce #'lcm (map 'list 
 				      #'(lambda (rational)
 					  (denominator rational))
@@ -467,28 +483,29 @@ Trade-resources
 					    (let ((copy-times (* (numerator (second action))
 								 (/ normalizer 
 								    (denominator (second action))))))
-					      (format t "Copy times: ~d~%~%" copy-times)
+					      ;(format t "Copy times: ~d~%~%" copy-times)
 					      (loop for i from 1 to copy-times 
 						 collect (first action))))
 					move)))
 			    possible-moves))
 	 (gen (biased-generator '(0 1 2) 
-				(list (floor (/ normalizer (denominator (cdr (first (nth (mdpr-cur-state mdpr) (mdpr-graph mdpr))))))) 
-				  (floor (/ normalizer (denominator (cdr (second (nth (mdpr-cur-state mdpr) (mdpr-graph mdpr)))))))
-				  (floor (/ normalizer (denominator (cdr (third (nth (mdpr-cur-state mdpr) (mdpr-graph mdpr))))))))))
+				(list (floor (/ normalizer (denominator (cdr (first (nth (second (mdpr-cur-state mdpr)) (mdpr-graph mdpr))))))) 
+				  (floor (/ normalizer (denominator (cdr (second (nth (second (mdpr-cur-state mdpr)) (mdpr-graph mdpr)))))))
+				  (floor (/ normalizer (denominator (cdr (third (nth (second (mdpr-cur-state mdpr)) (mdpr-graph mdpr))))))))))
 	 (state-list (loop for i from  1 to 100 collect (funcall gen)))
 	 (next-state (nth (random (length state-list)) state-list))
 	 (choices (nth next-state move-list)))
-    (format t "State list: ~S~%" state-list)
-    (format t "Next State: ~d~%" next-state)
-    (format t "Moves list: ~S~%" move-list)
-    (format t "Possible moves: ~S~%" possible-moves)
-
-    (setf (mdpr-cur-state mdpr) next-state)
-    (format t "MDPR New State: ~d~%" (mdpr-cur-state mdpr))
     (if (not (null choices))
-	(nth (random (length choices)) choices)
-	choices)))
+	(list (map '()
+	 #'(lambda (a)
+	     (format t "Action: ~S~%" a)
+	     (setf (nth (gethash (subseq a 0 4) *vector-keys*)
+			(mdpr-cur-state mdpr))
+		   (+ (fifth a) (nth (gethash (subseq a 0 4) *vector-keys*)
+				     (first (mdpr-cur-state mdpr))))))
+	 (nth (random (length choices)) choices))
+	      (mdpr-cur-state mdpr))
+	(list choices (mdpr-cur-state mdpr)))))
 
 (defun test-act () 
   ; find all the probabilities of moving out of this state.
@@ -558,6 +575,12 @@ Trade-resources
          finally (return (values total (coerce vs 'vector))))
     (lambda ()
       (aref values (random total)))))
+
+#| Multiply vector by a scalar |#
+
+(defun *vector (scalar vec)
+  (loop for ele in vec
+	      collect (* scalar ele)))
 
 #| SCRATCH 
 
