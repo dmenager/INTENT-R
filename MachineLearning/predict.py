@@ -1,28 +1,26 @@
 # predict.py
 import sys
+from os import path
 import pandas as ps
 from StringIO import StringIO
-from sklearn.externals import joblib as jl
+from utils import load
 
-fileName = 'predictSVM.pkl'
+svm_file = path.expanduser('~/INTENT-R/MachineLearning/placeSVM.spkl')
+header_file = path.expanduser('~/INTENT-R/MachineLearning/sample.txt')
 
 str = sys.argv[1]
 
-headers = ps.read_csv('sample.csv',  delim_whitespace = True)
+headers = ps.read_csv(header_file,  delim_whitespace = True)
 x = ps.read_csv(StringIO(str),  names = headers.columns,  
 header = None,  delim_whitespace = True)
 
-# Remove feature(s)
-x = x.drop("Label", 1)
+F = ["SupportGained", "SupportLost",  "SupportKilled", "StructuresGained", "StructuresLost",  
+"StructuresDestroyed", "SiegeGained", "SiegeLost", "SiegeKilled",  "time"]
 
-# Create feature(s)
-x["army"] = x['inf'] + x['cvlry'] + (5 * x['chmp']) + (10 * x['hero'])
+x = x[F]
 
-# Reorder alphabetically
-x = x.reindex_axis(sorted(x.columns),  axis = 1)
-
-Labels = ["defend",  "build",  "attack"]
-clf = jl.load(fileName)    
+Labels = ["first",  "second",  "third",  "fourth"]
+clf = load(svm_file)
 pred = clf.predict(x.values) 
 
-print "Machine learning prediction is " + Labels[pred[0]]
+print "Machine learning prediction: You will get " + Labels[pred[0]] + " place."
