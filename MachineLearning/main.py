@@ -1,53 +1,40 @@
 # MachineLearning.py
-from utils import combine,  save,  load,  shiftLabels,  divide,  randomize
-from machine_learning import cluster,  hist,  pca,  train,  accuracy
+import utils
+import machine_learning
 
 print "Combining data files..."
-X,  fileLengthes = combine()
-save(X,  'data.spkl')
-save(fileLengthes,  'fileLengthes.spkl')
+utils.combine()
 print "Done."
 
-#X = load('data.spkl')
-#fileLengthes = load('fileLengthes.spkl')
+X = utils.getData()
 
-handLabels = X["Label"]
-X = X.drop("Label" , 1)
-X['army'] = X['inf'] +  (X['cvlry'] * 2) +  (X['chmp'] * 5) + (X['hero'] * 10)
-F = ['fmales',  'army' ,  'house',  'econ']
-
-print "Clustering..."
-Y = cluster(X,  F,  k = 3)
-save(Y,  'clusters.spkl')
+print "Calculating post-game features..."
+X = utils.calcFeatures(X)
 print "Done."
 
-#Y = load('clusters.spkl')
+Y = X.place.values
 
-## Visualizing
-#hist(X,  Y,  F)
-#pca(X,  Y,  F)
+# Restrict X to selected features
+F = ["SupportGained", "SupportLost",  "SupportKilled",  
+"StructuresGained", "StructuresLost",  "StructuresDestroyed", "SiegeGained", "SiegeLost", "SiegeKilled",  "time"]
 
 print "Shifting and randomizing..."
 shift = 10
-X,  Y = shiftLabels (X,  Y,  shift,  fileLengthes)
-X,  Y = randomize (X,  Y)
-save(X,  'X.spkl')
-save(Y,  'Y.spkl')
+X,  Y = utils.shiftLabels (X,  Y,  shift)
+X,  Y = utils.randomize (X,  Y)
 print 'Done.'
 
-#X = load('X.spkl')
-#Y = load('Y.spkl')
+fractionTest = 0.3
+trainX,  testX = utils.divide(X,  fractionTest)
+trainY,  testY = utils.divide(Y,  fractionTest)
 
-trainX,  testX = divide(X,  0)
-trainY,  testY = divide(Y,  0)
+print "Calculating accuracy..."
+clf_test_data = machine_learning.train(trainX,  trainY,  F)
+timeBound = 60
+acc = machine_learning.accuracy(clf_test_data,  testX,  testY, F,  timeBound)
+print "Accuracy for first " + str(timeBound) + " mintues: ",  acc
 
 print "Training classifier..."
-clf = train(trainX,  trainY)
-save(clf,  'predictSVM.spkl')
+clf_all_data = machine_learning.train(X,  Y,  F)
+utils.save(clf_test_data,  'placeSVM.spkl')
 print "Done."
-
-#clf = load('predictSVM.spkl')
-
-#print "Calculating accuracy..."
-#acc = accuracy(clf,  testX,  testY) # = 63%
-#print "Accuracy: ",  acc
