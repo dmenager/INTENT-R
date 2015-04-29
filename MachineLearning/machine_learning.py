@@ -5,7 +5,6 @@ import sklearn.cluster
 import sklearn.svm
 from sklearn.decomposition import PCA
 from matplotlib import pyplot as plt
-import itertools
 
 # Cluster X based on features in F
 #
@@ -14,15 +13,14 @@ import itertools
 # k - number of clusters to use in clustering model (when appropriate)
 #
 # Returns - an array of cluster labels (Y)
-def cluster(X,  F=[], k=4):    
-    #  Use F to determine the features to be used in clustering.
-    if F != []:
-        X = X[F]
+def cluster(X,  F, k=4):    
+    #  Restrict X to selected features
+    X_F = X[F]
 
     clusterModel = sklearn.cluster.KMeans(n_clusters = k)
-    Y = clusterModel.fit_predict(X.values)
+    Y = clusterModel.fit_predict(X_F.values)
     
-    return Y 
+    return Y
 
 # Colors for plotting
 colors = ['b',  'r',  'g',  'c', 'm',  'y',  'k',  'w']
@@ -32,7 +30,7 @@ colors = ['b',  'r',  'g',  'c', 'm',  'y',  'k',  'w']
 # X - Pandas data set
 # Y - labels from clustering
 # F - the features to generated histograms for (an array of strings)
-def hist(X,  Y,  F):
+def hist(X,  Y,  F,  bins = 10):
     i_figure = 1
     
     # Generate a histogram for the given feature
@@ -41,20 +39,20 @@ def hist(X,  Y,  F):
         k = np.unique(Y).size
         
         # Array containing just that feature
-        feat_array = X[f]
+        X_F = X[f]
         
         clusters = np.ndarray(shape = (k,  0)).tolist()
         
         # Divide up (based on clustering label) into subsets 
         for i in range(0,  k):
-            clusters[i] = feat_array[Y == i ].values.tolist()
+            clusters[i] = X_F[Y == i ].values.tolist()
         
         # Create seperate figures
         plt.figure(i_figure)
         i_figure += 1
     
         # Automatically sets up histogram with bar-stacking style
-        plt.hist(clusters,  histtype = 'barstacked',  color = colors[0:k])
+        plt.hist(clusters,  histtype = 'barstacked',  color = colors[0:k],  bins = bins)
 
         plt.xlabel(f)
         plt.ylabel('Occurences of ranges')
@@ -70,10 +68,10 @@ def hist(X,  Y,  F):
 # F - the features include in PCA plot (an array of strings)
 def pca(X,  Y,  F):
     # Subset of X that has been selected
-    X_selected = X[F]
+    X_F = X[F]
     
     # Reduce X to 2 dimensions using principle component analysis
-    X_2D = PCA(n_components=2).fit_transform(X_selected.values)
+    X_2D = PCA(n_components=2).fit_transform(X_F.values)
 
     # Convert Numpy back to Pandas
     X_2D = ps.DataFrame(X_2D)
@@ -97,9 +95,11 @@ def pca(X,  Y,  F):
 #
 # X - training data in pandas DataFrame
 # Y - cluster labels in numpy array
-def train(X,  Y):
+def train(X,  Y,  F):
+    X_F = X[F]
+    
     clf = sklearn.svm.SVC()
-    clf.fit(X.values, Y.values)
+    clf.fit(X_F.values, Y.values)
     return clf
     
 # Test the accuracy of the classifier
@@ -107,12 +107,13 @@ def train(X,  Y):
 # clf - classification model
 # testX - test data in pandas DataFrame
 # testY - human-readable labels in numpy array
-def accuracy(clf,  testX,  testY):
-    compY = clf.predict(testX.values)
-    
+def accuracy(clf,  testX,  testY, F,   timeBound = 300):
+    X_F = testX[F]
+    compY = clf.predict(X_F.values)
+        
     correct = 0
-    for y1,y2 in itertools.izip(testY,  compY):
-        if y1 == y2:
+    for i in range(0,  len(testY)):
+        if (testY.iloc[i] == compY[i]) and (testX.iloc[i].time <= timeBound):
             correct += 1
     
     percentCorrect = (float(correct) / len(testY)) * 100
