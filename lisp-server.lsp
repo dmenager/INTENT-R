@@ -150,8 +150,19 @@ Trade-resources
 ; timer = timeout timer 
 (defun handle-request (stream t-idx ostream timer)
   (trivial-timers:schedule-timer timer (* 5 60))
-  (let ((client-id (write-to-string (read stream))))
-    (with-open-file (clientData (concatenate 'string 
+  (let* ((client-id (write-to-string (read stream)))
+	(line (read-line stream nil 'the-end))
+	(*standard-output* ostream)
+	(result (read-line (sb-ext:process-output 
+			      (sb-ext:run-program 
+			       "python" 
+			       (list "/home/ec2-user/INTENT-R/MachineLearning/predict.py" line) 
+			       :search t 
+			       :wait '() 
+			       :output :stream 
+			       :error :stream)) 
+			     '())))
+    #|(with-open-file (clientData (concatenate 'string 
 					     "clientData/"
 					     client-id ".txt")
 				:direction :output
@@ -172,14 +183,14 @@ Trade-resources
     (let ((result (read-line (sb-ext:process-output 
 			      (sb-ext:run-program 
 			       "python" 
-			       (list "/home/ec2-user/INTENT-R/MachineLearning/predict.py" client-id) 
+			       (list "/home/ec2-user/INTENT-R/MachineLearning/predict.py" line) 
 			       :search t 
 			       :wait '() 
 			       :output :stream 
 			       :error :stream)) 
-			     '())))
+			     '()))) |#
       (format stream "~S~%" result)
-      (force-output stream))))
+      (force-output stream))) ;)
     
 
 (defun to-syms (inp)
@@ -331,11 +342,11 @@ Trade-resources
       (nconc ;(combinations 10 actions) 
 					;(combinations 9 actions) 
 					;(combinations 8 actions) 
-					;(combinations 7 actions)  SIMPLIFY COMBINATIONS LIKE ((5 0 0 8 10) (5 0 0 8 30))
+					;(combinations 7 actions) 
 					;(combinations 6 actions) 
 					;(combinations 5 actions)  
 					;(combinations 4 actions) 
-					;(combinations 3 actions) 
+       (combinations 3 actions) 
        (combinations 2 actions)
        (combinations 1 actions)))))
 
