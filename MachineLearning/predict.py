@@ -5,7 +5,7 @@ import pandas as ps
 from StringIO import StringIO
 from utils import load
 
-svm_file = path.expanduser('~/INTENT-R/MachineLearning/placeSVM.spkl')
+svm_file = path.expanduser('~/INTENT-R/MachineLearning/SVM.spkl')
 header_file = path.expanduser('~/INTENT-R/MachineLearning/sample.txt')
 
 str = sys.argv[1]
