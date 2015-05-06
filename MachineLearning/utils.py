@@ -3,7 +3,6 @@ import os#.path
 import numpy as np
 import pandas as ps
 import random as rd
-import math
 import pickle as pkl
 
 def combine(dir_name = "../0adtestdata"):
@@ -27,29 +26,10 @@ def combine(dir_name = "../0adtestdata"):
 def getData():
     return ps.read_csv("all_data.csv")
 
-def validate(X):
-    # Extract numpy ndarray
-    arr = X.values
-    col = X.columns
-    
-    #Check for states that are identical
-    i = 0
-    last = len(arr) - 1
-    while (arr[last - i] == arr[last - i - 1]).all():
-        i += 1
-    arr = arr[:last - i]
-    
-    for i in range(0,  len(X) - 2):
-        t1 = X.iloc[i].time
-        t2 = X.iloc[i + 2].time
-        if (t1 != t2 - 1):
-            print "Error."
-    
-    return ps.DataFrame(arr,  columns = col)
-
 def calcFeatures(X):
     X["place"] = -1
     files = separate(X,  X.file.values)
+    
     for i in range(0,  len(files)):
         players = separate(files[i],  files[i].player.values)
         
@@ -84,6 +64,7 @@ def calcFeatures(X):
         files[i] = ps.concat(players,  ignore_index = True)
         
     X = ps.concat(files,  ignore_index = True)
+    
     return X
 
 def separate(X,  Y):
@@ -106,8 +87,6 @@ def load(fileName):
     object = pkl.loads(s)
     return object
     
-# X - pandas DataFrame
-# Y - numpy array
 def randomize(X,  Y):
     X['Y'] = Y
     indexes = list(X.index)
@@ -122,10 +101,12 @@ def shiftLabels(X,  Y, shift):
     shiftX = ps.DataFrame(columns = X.columns)
     shiftY = np.array([],  dtype = int)
     prev = 0
-    for next in X.index[1:]:
-        if (next == len(X) - 1) or (X.ix[next - 1].player != X.ix[next].player) or (X.ix[next - 1].file != X.ix[next].file):            
+    for next in range(1, len(X)):
+        if (next == len(X) - 1 # Reached the end of X
+        or (X.player.iloc[next - 1] != X.player.iloc[next] # Reached a different player
+        or X.file.iloc[next - 1] != X.file.iloc[next])): # Reached a different file   
             # Extract states and labels with appropriate shift
-            x = X[prev:next - shift]
+            x = X.iloc[prev:next - shift]
             y = Y[prev + shift:next]
             prev = next
 
@@ -133,13 +114,3 @@ def shiftLabels(X,  Y, shift):
             shiftY = np.concatenate([shiftY, y])
     
     return shiftX, shiftY
-
-# array - anything array-like
-# fractionTest - float value between 0 and 1
-def divide (array, fractionTest):
-    dividingIndex = math.trunc(fractionTest * len(array))
-
-    train = array[dividingIndex:]
-    test = array[:dividingIndex]
-    
-    return train,  test
