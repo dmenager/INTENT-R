@@ -14,13 +14,31 @@ headers = ps.read_csv(header_file,  delim_whitespace = True)
 x = ps.read_csv(StringIO(str),  names = headers.columns,  
 header = None,  delim_whitespace = True)
 
-F = ["SupportGained", "SupportLost",  "SupportKilled", "StructuresGained", "StructuresLost",  
-"StructuresDestroyed", "SiegeGained", "SiegeLost", "SiegeKilled",  "time"]
+All = ["time", "CurrentFood", "FoodUsed", "FoodSold", "FoodBought", "FoodGathered",
+"CurrentWood",  "WoodUsed", "WoodSold", "WoodBought", "WoodGathered", 
+"CurrentMetal", "MetalUsed", "MetalSold", "MetalBought", "MetalGathered", 
+"CurrentStone", "StoneUsed", "StoneSold", "StoneBought", "StoneGathered", 
+"InfantryGained", "InfantryLost", "InfantryKilled", 
+"CavalryGained", "CavalryLost", "CavalryKilled", 
+"SupportGained", "SupportLost", "SupportKilled", 
+"SiegeGained", "SiegeLost", "SiegeKilled", 
+"StructuresGained", "StructuresLost", "StructuresDestroyed", 
+"dCurrentFood", "dFoodUsed", "dFoodSold", "dFoodBought", "dFoodGathered",
+"dCurrentWood", "dWoodUsed", "dWoodSold", "dWoodBought", "dWoodGathered", 
+"dCurrentMetal", "dMetalUsed", "dMetalSold", "dMetalBought", "dMetalGathered", 
+"dCurrentStone", "dStoneUsed", "dStoneSold", "dStoneBought", "dStoneGathered", 
+"dInfantryGained", "dInfantryLost", "dInfantryKilled", 
+"dCavalryGained", "dCavalryLost", "dCavalryKilled", 
+"dSupportGained", "dSupportLost", "dSupportKilled", 
+"dSiegeGained", "dSiegeLost", "dSiegeKilled", 
+"dStructuresGained", "dStructuresLost", "dStructuresDestroyed", 
+"MilitaryMovementsOccurred",  "dMilitaryMovementsOccurred",
+"SupportMovementsOccurred", "dSupportMovementsOccurred",
+"DistanceEnemyBase", "dDistanceEnemyBase"]
 
-x = x[F]
+x = x[All]
 
-Labels = ["first",  "second",  "third",  "fourth"]
 clf = load(svm_file)
 pred = clf.predict(x.values) 
 
-print "Machine learning prediction: You will get " + Labels[pred[0]] + " place."
+print "Machine learning prediction: ", pred[0]
